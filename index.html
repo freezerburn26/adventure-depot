@@ -81,7 +81,7 @@
 
     async function sendEmail(to, subject, text) {
       const token = await currentUser.getIdToken();
-      await fetch("https://c5b43e1a-adventure-depot-email.freezerburn26.workers.dev/", {
+      await fetch("https://85b9c14c-adventure-depot-email.freezerburn26.workers.dev/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to, subject, text, token })
