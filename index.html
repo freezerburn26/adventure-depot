@@ -71,7 +71,6 @@
     };
 
     const ADMIN_EMAILS = ['freezerburn26@gmail.com', 'ashleycalliotte@gmail.com'];
-    const OPERATOR_EMAILS = [];
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -80,9 +79,19 @@
     let currentUser = null;
     let currentRole = null;
 
+    async function sendEmail(to, subject, text) {
+      const token = await currentUser.getIdToken();
+      await fetch("https://c5b43e1a-adventure-depot-email.freezerburn26.workers.dev/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, subject, text, token })
+      }).then(r => {
+        if (!r.ok) console.error("Failed to send email", r.status);
+      });
+    }
+
     function setRole(email) {
       if (ADMIN_EMAILS.includes(email)) return 'admin';
-      if (OPERATOR_EMAILS.includes(email)) return 'operator';
       return 'unauthorized';
     }
 
@@ -96,11 +105,13 @@
         document.getElementById('idea-form').classList.remove('hidden');
         document.getElementById('history-section').classList.remove('hidden');
         loadReviewedIdeas();
-        setInterval(loadReviewedIdeas, 30000);
+        loadIdeas();
+        setInterval(() => {
+          loadReviewedIdeas();
+          loadIdeas();
+        }, 30000);
         if (currentRole === 'admin') {
           document.getElementById('admin-section').classList.remove('hidden');
-          loadIdeas();
-          setInterval(loadIdeas, 30000);
         }
       }
     }
@@ -118,15 +129,12 @@
             <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
             ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
             <p>Notes: ${data.notes || 'None'}</p>
-          `;
-          if (data.submittedBy !== currentUser.email) {
-            div.innerHTML += `
+            ${data.submittedBy !== currentUser.email ? `
               <input type="text" placeholder="Reason" id="reason-${doc.id}">
               <input type="date" id="finalDate-${doc.id}">
-              <button onclick="approve('${doc.id}', '${data.submittedBy}')">Approve</button>
-              <button onclick="reject('${doc.id}', '${data.submittedBy}')">Reject</button>
-            `;
-          }
+              <button onclick="approve('${doc.id}', '${data.submittedBy}', '${data.name}')">Approve</button>
+              <button onclick="reject('${doc.id}', '${data.submittedBy}', '${data.name}')">Reject</button>
+            ` : '<p>(Your submission)</p>'}`;
           container.appendChild(div);
         });
       });
@@ -135,34 +143,28 @@
     function loadReviewedIdeas() {
       const container = document.getElementById('history-list');
       container.innerHTML = '';
-
-      const renderDoc = (doc) => {
-        const data = doc.data();
-        const div = document.createElement('div');
-        div.className = 'idea-box';
-        div.innerHTML = `
-          <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
-          <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
-          ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
-          <p>Notes: ${data.notes || 'None'}</p>
-          <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
-          ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}<br>By: ${data.reviewedBy || 'N/A'}</p>` : ''}
-          ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}<br>By: ${data.reviewedBy || 'N/A'}</p>` : ''}
-        `;
-        container.appendChild(div);
-      };
-
       db.collection('ideas').get().then(snapshot => {
         snapshot.forEach(doc => {
           const data = doc.data();
           if (data.status === 'approved' || data.status === 'rejected') {
-            renderDoc(doc);
+            const div = document.createElement('div');
+            div.className = 'idea-box';
+            div.innerHTML = `
+              <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
+              <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
+              ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
+              <p>Notes: ${data.notes || 'None'}</p>
+              <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
+              ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}<br>By: ${data.reviewedBy}</p>` : ''}
+              ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}<br>By: ${data.reviewedBy}</p>` : ''}
+            `;
+            container.appendChild(div);
           }
         });
       });
     }
 
-    function approve(id, email) {
+    function approve(id, email, name) {
       const reason = document.getElementById(`reason-${id}`).value;
       const finalDate = document.getElementById(`finalDate-${id}`).value;
       db.collection('ideas').doc(id).update({
@@ -173,11 +175,13 @@
       }).then(() => {
         loadIdeas();
         loadReviewedIdeas();
-        console.log(`Email would be sent to ${email}: Approved with reason: ${reason}`);
+        sendEmail(email, `Your Adventure Idea Was Approved`, `✅ ${name} was approved.
+Reason: ${reason}
+Date: ${finalDate || 'TBD'}`);
       });
     }
 
-    function reject(id, email) {
+    function reject(id, email, name) {
       const reason = document.getElementById(`reason-${id}`).value;
       db.collection('ideas').doc(id).update({
         status: 'rejected',
@@ -186,13 +190,14 @@
       }).then(() => {
         loadIdeas();
         loadReviewedIdeas();
-        console.log(`Email would be sent to ${email}: Rejected with reason: ${reason}`);
+        sendEmail(email, `Your Adventure Idea Was Rejected`, `❌ ${name} was rejected.
+Reason: ${reason}`);
       });
     }
 
     const ideaForm = document.getElementById('idea-form');
     if (ideaForm) {
-      ideaForm.addEventListener('submit', e => {
+      ideaForm.addEventListener('submit', async e => {
         e.preventDefault();
         const name = document.getElementById('name').value;
         const submitBtn = document.getElementById('submit-btn');
@@ -222,7 +227,7 @@
           loadReviewedIdeas();
           statusMsg.textContent = 'Idea submitted successfully!';
           statusMsg.className = 'status-msg success';
-          console.log(`Email would be sent to ${ADMIN_EMAILS.join(', ')}: New idea submitted by ${currentUser.email}`);
+          sendEmail(ADMIN_EMAILS.join(","), `New Adventure Idea Submitted`, `${currentUser.email} submitted: ${name}\n${notes}`);
         }).catch(err => {
           console.error('Submission failed:', err);
           statusMsg.textContent = 'Error submitting idea: ' + (err.message || err);
