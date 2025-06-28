@@ -143,8 +143,8 @@
           ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
           <p>Notes: ${data.notes || 'None'}</p>
           <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
-          ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}</p>` : ''}
-          ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}</p>` : ''}
+          ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}<br>By: ${data.reviewedBy || 'N/A'}</p>` : ''}
+          ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}<br>By: ${data.reviewedBy || 'N/A'}</p>` : ''}
         `;
         container.appendChild(div);
       };
@@ -165,7 +165,8 @@
       db.collection('ideas').doc(id).update({
         status: 'approved',
         approvalReason: reason,
-        finalDate: finalDate
+        finalDate: finalDate,
+        reviewedBy: currentUser.email
       }).then(() => {
         loadIdeas();
         loadReviewedIdeas();
@@ -177,7 +178,8 @@
       const reason = document.getElementById(`reason-${id}`).value;
       db.collection('ideas').doc(id).update({
         status: 'rejected',
-        rejectionReason: reason
+        rejectionReason: reason,
+        reviewedBy: currentUser.email
       }).then(() => {
         loadIdeas();
         loadReviewedIdeas();
