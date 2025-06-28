@@ -262,7 +262,7 @@
           statusMsg.className = 'status-msg success';
         }).catch(err => {
           console.error('Submission failed:', err);
-          statusMsg.textContent = 'Error submitting idea.';
+          statusMsg.textContent = 'Error submitting idea: ' + (err.message || err);
           statusMsg.className = 'status-msg error';
         }).finally(() => {
           submitBtn.disabled = false;
