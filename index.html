@@ -137,7 +137,7 @@
 
     window.onload = () => {
       google.accounts.id.initialize({
-        client_id: 'YOUR_GOOGLE_CLIENT_ID',
+        client_id: '604874292978-tkaq841n6v5qcdinn1467hnqr3qlhgv9.apps.googleusercontent.com',
         callback: res => {
           const decoded = JSON.parse(atob(res.credential.split('.')[1]));
           currentUser = decoded;
