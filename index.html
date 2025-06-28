@@ -133,7 +133,10 @@
         document.getElementById('idea-form').classList.remove('hidden');
         document.getElementById('history-section').classList.remove('hidden');
         loadReviewedIdeas();
-        loadIdeas();
+
+        if (currentRole === 'admin' || currentRole === 'operator') {
+          loadIdeas();
+        }
 
         if (currentRole === 'admin') {
           document.getElementById('admin-section').classList.remove('hidden');
@@ -184,8 +187,8 @@
             <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
             ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
             <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
-            ${data.status === 'approved' ? `<p>Final Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}</p>` : ''}
-            ${data.status === 'rejected' ? `<p>Reason: ${data.rejectionReason || 'N/A'}</p>` : ''}
+            ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}</p>` : ''}
+            ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}</p>` : ''}
           `;
           container.appendChild(div);
         });
