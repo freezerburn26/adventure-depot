@@ -70,7 +70,7 @@
       if (currentRole === 'unauthorized') {
         document.getElementById('unauthorized').classList.remove('hidden');
       } else {
-        if (currentRole === 'operator') {
+        if (currentRole === 'operator' || currentRole === 'admin') {
           document.getElementById('idea-form').classList.remove('hidden');
         }
         if (currentRole === 'admin') {
