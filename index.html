@@ -70,8 +70,8 @@
       projectId: "adventure-depot"
     };
 
-    const ADMIN_EMAILS = ['freezerburn26@gmail.com'];
-    const OPERATOR_EMAILS = ['ashleycalliotte@gmail.com'];
+    const ADMIN_EMAILS = ['freezerburn26@gmail.com', 'ashleycalliotte@gmail.com'];
+    const OPERATOR_EMAILS = [];
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -110,19 +110,21 @@
       db.collection('ideas').where('status', '==', 'pending').get().then(snapshot => {
         snapshot.forEach(doc => {
           const data = doc.data();
-          const div = document.createElement('div');
-          div.className = 'idea-box';
-          div.innerHTML = `
-            <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
-            <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
-            ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
-            <p>Notes: ${data.notes || 'None'}</p>
-            <input type="text" placeholder="Reason" id="reason-${doc.id}">
-            <input type="date" id="finalDate-${doc.id}">
-            <button onclick="approve('${doc.id}', '${data.submittedBy}')">Approve</button>
-            <button onclick="reject('${doc.id}', '${data.submittedBy}')">Reject</button>
-          `;
-          container.appendChild(div);
+          if (data.submittedBy !== currentUser.email) {
+            const div = document.createElement('div');
+            div.className = 'idea-box';
+            div.innerHTML = `
+              <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
+              <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
+              ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
+              <p>Notes: ${data.notes || 'None'}</p>
+              <input type="text" placeholder="Reason" id="reason-${doc.id}">
+              <input type="date" id="finalDate-${doc.id}">
+              <button onclick="approve('${doc.id}', '${data.submittedBy}')">Approve</button>
+              <button onclick="reject('${doc.id}', '${data.submittedBy}')">Reject</button>
+            `;
+            container.appendChild(div);
+          }
         });
       });
     }
