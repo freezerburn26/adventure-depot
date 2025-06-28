@@ -22,7 +22,6 @@
 </head>
 <body>
   <h1>Adventure Ideas</h1>
-
   <div id="login">
     <button id="signin-btn">Sign in with Google</button>
   </div>
@@ -65,11 +64,7 @@
     const firebaseConfig = {
       apiKey: "AIzaSyCZE2TUvqdCXq3NIH6ELwJR01gBCyqpypI",
       authDomain: "adventure-depot.firebaseapp.com",
-      projectId: "adventure-depot",
-      storageBucket: "adventure-depot.firebasestorage.app",
-      messagingSenderId: "604874292978",
-      appId: "1:604874292978:web:c18dd113fbdcd0643cda6b",
-      measurementId: "G-FBDKQ9NTZL"
+      projectId: "adventure-depot"
     };
 
     const ADMIN_EMAILS = ['freezerburn26@gmail.com'];
@@ -98,7 +93,6 @@
         document.getElementById('idea-form').classList.remove('hidden');
         document.getElementById('history-section').classList.remove('hidden');
         loadReviewedIdeas();
-
         if (currentRole === 'admin') {
           document.getElementById('admin-section').classList.remove('hidden');
           loadIdeas();
@@ -147,10 +141,12 @@
         container.appendChild(div);
       };
 
-      db.collection('ideas').where('status', '==', 'approved').get().then(approvedSnap => {
-        approvedSnap.forEach(renderDoc);
-        db.collection('ideas').where('status', '==', 'rejected').get().then(rejectedSnap => {
-          rejectedSnap.forEach(renderDoc);
+      db.collection('ideas').get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.status === 'approved' || data.status === 'rejected') {
+            renderDoc(doc);
+          }
         });
       });
     }
