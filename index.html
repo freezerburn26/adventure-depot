@@ -8,9 +8,51 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 1rem; max-width: 600px; margin: auto; }
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      max-width: 700px;
+      margin: auto;
+      background-color: #f8f9fa;
+    }
     .hidden { display: none; }
-    .idea-box { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
+    .idea-box {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    form input, form select, form button {
+      display: block;
+      width: 100%;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    label {
+      margin-top: 0.75rem;
+      font-weight: bold;
+      display: block;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .status-msg {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .success { color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
@@ -23,16 +65,25 @@
   <div id="unauthorized" class="hidden">Unauthorized user</div>
 
   <form id="idea-form" class="hidden">
-    <input type="text" id="name" placeholder="Adventure Name*" required><br>
-    <input type="date" id="date"><br>
+    <label for="name">Adventure Name*</label>
+    <input type="text" id="name" placeholder="Enter a name for your idea" required>
+
+    <label for="date">Suggested Date</label>
+    <input type="date" id="date">
+
+    <label for="window">Date Confidence Window</label>
     <select id="window">
       <option>Exact</option>
       <option>Close</option>
       <option>Months</option>
       <option>Years</option>
-    </select><br>
-    <input type="url" id="url" placeholder="Optional URL"><br>
-    <button type="submit">Submit Idea</button>
+    </select>
+
+    <label for="url">Link (Optional)</label>
+    <input type="url" id="url" placeholder="https://example.com">
+
+    <button id="submit-btn" type="submit">Submit Idea</button>
+    <p id="form-status" class="status-msg"></p>
   </form>
 
   <div id="admin-section" class="hidden">
@@ -75,14 +126,13 @@
       if (currentRole === 'unauthorized') {
         document.getElementById('unauthorized').classList.remove('hidden');
       } else {
-        if (currentRole === 'operator' || currentRole === 'admin') {
-          document.getElementById('idea-form').classList.remove('hidden');
-          document.getElementById('history-section').classList.remove('hidden');
-          loadReviewedIdeas();
-        }
+        document.getElementById('idea-form').classList.remove('hidden');
+        document.getElementById('history-section').classList.remove('hidden');
+        loadReviewedIdeas();
+        loadIdeas();
+
         if (currentRole === 'admin') {
           document.getElementById('admin-section').classList.remove('hidden');
-          loadIdeas();
         }
       }
     }
@@ -99,11 +149,19 @@
             <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
             <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
             ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
-            <input type="text" placeholder="Reason" id="reason-${doc.id}">
-            <input type="date" id="finalDate-${doc.id}">
-            <button onclick="approve('${doc.id}')">Approve</button>
-            <button onclick="reject('${doc.id}')">Reject</button>
           `;
+
+          if (currentRole === 'admin') {
+            div.innerHTML += `
+              <label for="reason-${doc.id}">Reason</label>
+              <input type="text" id="reason-${doc.id}" placeholder="Reason">
+              <label for="finalDate-${doc.id}">Final Date</label>
+              <input type="date" id="finalDate-${doc.id}">
+              <button onclick="approve('${doc.id}')">Approve</button>
+              <button onclick="reject('${doc.id}')">Reject</button>
+            `;
+          }
+
           container.appendChild(div);
         });
       });
@@ -154,24 +212,6 @@
       });
     }
 
-    document.getElementById('idea-form').addEventListener('submit', e => {
-      e.preventDefault();
-      const name = document.getElementById('name').value;
-      if (!name) return;
-      const date = document.getElementById('date').value;
-      const window = document.getElementById('window').value;
-      const url = document.getElementById('url').value;
-
-      db.collection('ideas').add({
-        name, date, window, url,
-        status: 'pending',
-        submittedBy: currentUser.email,
-        submittedAt: new Date().toISOString()
-      }).then(() => {
-        document.getElementById('idea-form').reset();
-      });
-    });
-
     window.onload = () => {
       auth.onAuthStateChanged(user => {
         if (user) {
@@ -185,6 +225,43 @@
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).catch(error => {
           console.error('Sign-in error:', error);
+        });
+      });
+
+      document.getElementById('idea-form').addEventListener('submit', e => {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const submitBtn = document.getElementById('submit-btn');
+        const statusMsg = document.getElementById('form-status');
+
+        if (!name) return;
+        submitBtn.disabled = true;
+        statusMsg.textContent = '';
+
+        const date = document.getElementById('date').value;
+        const windowVal = document.getElementById('window').value;
+        const url = document.getElementById('url').value;
+
+        db.collection('ideas').add({
+          name,
+          date,
+          window: windowVal,
+          url,
+          status: 'pending',
+          submittedBy: currentUser.email,
+          submittedAt: new Date().toISOString()
+        }).then(() => {
+          document.getElementById('idea-form').reset();
+          loadIdeas();
+          loadReviewedIdeas();
+          statusMsg.textContent = 'Idea submitted successfully!';
+          statusMsg.className = 'status-msg success';
+        }).catch(err => {
+          console.error('Submission failed:', err);
+          statusMsg.textContent = 'Error submitting idea.';
+          statusMsg.className = 'status-msg error';
+        }).finally(() => {
+          submitBtn.disabled = false;
         });
       });
     };
