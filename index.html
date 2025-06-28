@@ -1,165 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Adventure Ideas</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 1rem;
-      max-width: 700px;
-      margin: auto;
-      background-color: #f8f9fa;
-    }
-    .hidden { display: none; }
-    .idea-box {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 1rem;
-      margin: 1rem 0;
-      background-color: #fff;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    form input, form select, form button {
-      display: block;
-      width: 100%;
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    label {
-      margin-top: 0.75rem;
-      font-weight: bold;
-      display: block;
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .status-msg {
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    .success { color: green; }
-    .error { color: red; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adventure Ideas</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 1rem;
+            max-width: 700px;
+            margin: auto;
+            background-color: #f8f9fa;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .idea-box {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        form input,
+        form select,
+        form button {
+            display: block;
+            width: 100%;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        label {
+            margin-top: 0.75rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .status-msg {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
 </head>
+
 <body>
-  <h1>Adventure Ideas</h1>
+    <h1>Adventure Ideas</h1>
 
-  <div id="login">
-    <button id="signin-btn">Sign in with Google</button>
-  </div>
-  <p id="user-info"></p>
-  <div id="unauthorized" class="hidden">Unauthorized user</div>
+    <div id="login">
+        <button id="signin-btn">Sign in with Google</button>
+    </div>
+    <p id="user-info"></p>
+    <div id="unauthorized" class="hidden">Unauthorized user</div>
 
-  <form id="idea-form" class="hidden">
-    <label for="name">Adventure Name*</label>
-    <input type="text" id="name" placeholder="Enter a name for your idea" required>
+    <form id="idea-form" class="hidden">
+        <label for="name">Adventure Name*</label>
+        <input type="text" id="name" placeholder="Enter a name for your idea" required>
 
-    <label for="date">Suggested Date</label>
-    <input type="date" id="date">
+        <label for="date">Suggested Date</label>
+        <input type="date" id="date">
 
-    <label for="window">Date Confidence Window</label>
-    <select id="window">
-      <option>Exact</option>
-      <option>Close</option>
-      <option>Months</option>
-      <option>Years</option>
-    </select>
+        <label for="window">Date Confidence Window</label>
+        <select id="window">
+            <option>Exact</option>
+            <option>Close</option>
+            <option>Months</option>
+            <option>Years</option>
+        </select>
 
-    <label for="url">Link (Optional)</label>
-    <input type="url" id="url" placeholder="https://example.com">
+        <label for="url">Link (Optional)</label>
+        <input type="url" id="url" placeholder="https://example.com">
 
-    <button id="submit-btn" type="submit">Submit Idea</button>
-    <p id="form-status" class="status-msg"></p>
-  </form>
+        <button id="submit-btn" type="submit">Submit Idea</button>
+        <p id="form-status" class="status-msg"></p>
+    </form>
 
-  <div id="admin-section" class="hidden">
-    <h2>Pending Ideas</h2>
-    <div id="ideas-list"></div>
-  </div>
+    <div id="admin-section" class="hidden">
+        <h2>Pending Ideas</h2>
+        <div id="ideas-list"></div>
+    </div>
 
-  <div id="history-section" class="hidden">
-    <h2>Reviewed Ideas</h2>
-    <div id="history-list"></div>
-  </div>
+    <div id="history-section" class="hidden">
+        <h2>Reviewed Ideas</h2>
+        <div id="history-list"></div>
+    </div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCZE2TUvqdCXq3NIH6ELwJR01gBCyqpypI",
-      authDomain: "adventure-depot.firebaseapp.com",
-      projectId: "adventure-depot",
-      storageBucket: "adventure-depot.firebasestorage.app",
-      messagingSenderId: "604874292978",
-      appId: "1:604874292978:web:c18dd113fbdcd0643cda6b",
-      measurementId: "G-FBDKQ9NTZL"
-    };
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZE2TUvqdCXq3NIH6ELwJR01gBCyqpypI",
+            authDomain: "adventure-depot.firebaseapp.com",
+            projectId: "adventure-depot",
+            storageBucket: "adventure-depot.firebasestorage.app",
+            messagingSenderId: "604874292978",
+            appId: "1:604874292978:web:c18dd113fbdcd0643cda6b",
+            measurementId: "G-FBDKQ9NTZL"
+        };
 
-    const ADMIN_EMAILS = ['freezerburn26@gmail.com'];
-    const OPERATOR_EMAILS = ['Ashleycalliotte@gmail.com'];
+        const ADMIN_EMAILS = ['freezerburn26@gmail.com'];
+        const OPERATOR_EMAILS = ['Ashleycalliotte@gmail.com'];
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-    let currentUser = null;
-    let currentRole = null;
+        let currentUser = null;
+        let currentRole = null;
 
-    function setRole(email) {
-      if (ADMIN_EMAILS.includes(email)) return 'admin';
-      if (OPERATOR_EMAILS.includes(email)) return 'operator';
-      return 'unauthorized';
-    }
-
-    function renderUI() {
-      document.getElementById('user-info').innerText = `Logged in as: ${currentUser.email}`;
-      document.getElementById('login').style.display = 'none';
-
-      if (currentRole === 'unauthorized') {
-        document.getElementById('unauthorized').classList.remove('hidden');
-      } else {
-        document.getElementById('idea-form').classList.remove('hidden');
-        document.getElementById('history-section').classList.remove('hidden');
-        loadReviewedIdeas();
-
-        if (currentRole === 'admin' || currentRole === 'operator') {
-          loadIdeas();
+        function setRole(email) {
+            if (ADMIN_EMAILS.includes(email)) return 'admin';
+            if (OPERATOR_EMAILS.includes(email)) return 'operator';
+            return 'unauthorized';
         }
 
-        if (currentRole === 'admin') {
-          document.getElementById('admin-section').classList.remove('hidden');
-        }
-      }
-    }
+        function renderUI() {
+            document.getElementById('user-info').innerText = `Logged in as: ${currentUser.email}`;
+            document.getElementById('login').style.display = 'none';
 
-    function loadIdeas() {
-      const container = document.getElementById('ideas-list');
-      container.innerHTML = '';
-      db.collection('ideas').where('status', '==', 'pending').get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const div = document.createElement('div');
-          div.className = 'idea-box';
-          div.innerHTML = `
+            if (currentRole === 'unauthorized') {
+                document.getElementById('unauthorized').classList.remove('hidden');
+            } else {
+                document.getElementById('idea-form').classList.remove('hidden');
+                document.getElementById('history-section').classList.remove('hidden');
+                loadReviewedIdeas();
+
+                if (currentRole === 'admin' || currentRole === 'operator') {
+                    loadIdeas();
+                }
+
+                if (currentRole === 'admin') {
+                    document.getElementById('admin-section').classList.remove('hidden');
+                }
+            }
+        }
+
+        function loadIdeas() {
+            const container = document.getElementById('ideas-list');
+            container.innerHTML = '';
+            db.collection('ideas').where('status', '==', 'pending').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const div = document.createElement('div');
+                    div.className = 'idea-box';
+                    div.innerHTML = `
             <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
             <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
             ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
           `;
 
-          if (currentRole === 'admin') {
-            div.innerHTML += `
+                    if (currentRole === 'admin') {
+                        div.innerHTML += `
               <label for="reason-${doc.id}">Reason</label>
               <input type="text" id="reason-${doc.id}" placeholder="Reason">
               <label for="finalDate-${doc.id}">Final Date</label>
@@ -167,111 +186,118 @@
               <button onclick="approve('${doc.id}')">Approve</button>
               <button onclick="reject('${doc.id}')">Reject</button>
             `;
-          }
+                    }
 
-          container.appendChild(div);
-        });
-      });
-    }
-
-    function loadReviewedIdeas() {
-      const container = document.getElementById('history-list');
-      container.innerHTML = '';
-      db.collection('ideas').where('status', 'in', ['approved', 'rejected']).orderBy('submittedAt', 'desc').get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const div = document.createElement('div');
-          div.className = 'idea-box';
-          div.innerHTML = `
-            <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
-            <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
-            ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
-            <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
-            ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}</p>` : ''}
-            ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}</p>` : ''}
-          `;
-          container.appendChild(div);
-        });
-      });
-    }
-
-    function approve(id) {
-      const reason = document.getElementById(`reason-${id}`).value;
-      const finalDate = document.getElementById(`finalDate-${id}`).value;
-      db.collection('ideas').doc(id).update({
-        status: 'approved',
-        approvalReason: reason,
-        finalDate: finalDate
-      }).then(() => {
-        loadIdeas();
-        loadReviewedIdeas();
-      });
-    }
-
-    function reject(id) {
-      const reason = document.getElementById(`reason-${id}`).value;
-      db.collection('ideas').doc(id).update({
-        status: 'rejected',
-        rejectionReason: reason
-      }).then(() => {
-        loadIdeas();
-        loadReviewedIdeas();
-      });
-    }
-
-    window.onload = () => {
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          currentUser = user;
-          currentRole = setRole(user.email);
-          renderUI();
+                    container.appendChild(div);
+                });
+            });
         }
-      });
 
-      document.getElementById('signin-btn').addEventListener('click', () => {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => {
-          console.error('Sign-in error:', error);
-        });
-      });
+        function loadReviewedIdeas() {
+            const container = document.getElementById('history-list');
+            container.innerHTML = '';
 
-      document.getElementById('idea-form').addEventListener('submit', e => {
-        e.preventDefault();
-        const name = document.getElementById('name').value;
-        const submitBtn = document.getElementById('submit-btn');
-        const statusMsg = document.getElementById('form-status');
+            const renderDoc = (doc) => {
+                const data = doc.data();
+                const div = document.createElement('div');
+                div.className = 'idea-box';
+                div.innerHTML = `
+      <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
+      <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
+      ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
+      <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
+      ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}</p>` : ''}
+      ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}</p>` : ''}
+    `;
+                container.appendChild(div);
+            };
 
-        if (!name) return;
-        submitBtn.disabled = true;
-        statusMsg.textContent = '';
+            db.collection('ideas').where('status', '==', 'approved').orderBy('submittedAt', 'desc').get().then(approvedSnap => {
+                approvedSnap.forEach(renderDoc);
+                db.collection('ideas').where('status', '==', 'rejected').orderBy('submittedAt', 'desc').get().then(rejectedSnap => {
+                    rejectedSnap.forEach(renderDoc);
+                });
+            });
+        }
 
-        const date = document.getElementById('date').value;
-        const windowVal = document.getElementById('window').value;
-        const url = document.getElementById('url').value;
+        function approve(id) {
+            const reason = document.getElementById(`reason-${id}`).value;
+            const finalDate = document.getElementById(`finalDate-${id}`).value;
+            db.collection('ideas').doc(id).update({
+                status: 'approved',
+                approvalReason: reason,
+                finalDate: finalDate
+            }).then(() => {
+                loadIdeas();
+                loadReviewedIdeas();
+            });
+        }
 
-        db.collection('ideas').add({
-          name,
-          date,
-          window: windowVal,
-          url,
-          status: 'pending',
-          submittedBy: currentUser.email,
-          submittedAt: new Date().toISOString()
-        }).then(() => {
-          document.getElementById('idea-form').reset();
-          loadIdeas();
-          loadReviewedIdeas();
-          statusMsg.textContent = 'Idea submitted successfully!';
-          statusMsg.className = 'status-msg success';
-        }).catch(err => {
-          console.error('Submission failed:', err);
-          statusMsg.textContent = 'Error submitting idea: ' + (err.message || err);
-          statusMsg.className = 'status-msg error';
-        }).finally(() => {
-          submitBtn.disabled = false;
-        });
-      });
-    };
-  </script>
+        function reject(id) {
+            const reason = document.getElementById(`reason-${id}`).value;
+            db.collection('ideas').doc(id).update({
+                status: 'rejected',
+                rejectionReason: reason
+            }).then(() => {
+                loadIdeas();
+                loadReviewedIdeas();
+            });
+        }
+
+        window.onload = () => {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    currentRole = setRole(user.email);
+                    renderUI();
+                }
+            });
+
+            document.getElementById('signin-btn').addEventListener('click', () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(error => {
+                    console.error('Sign-in error:', error);
+                });
+            });
+
+            document.getElementById('idea-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const name = document.getElementById('name').value;
+                const submitBtn = document.getElementById('submit-btn');
+                const statusMsg = document.getElementById('form-status');
+
+                if (!name) return;
+                submitBtn.disabled = true;
+                statusMsg.textContent = '';
+
+                const date = document.getElementById('date').value;
+                const windowVal = document.getElementById('window').value;
+                const url = document.getElementById('url').value;
+
+                db.collection('ideas').add({
+                    name,
+                    date,
+                    window: windowVal,
+                    url,
+                    status: 'pending',
+                    submittedBy: currentUser.email,
+                    submittedAt: new Date().toISOString()
+                }).then(() => {
+                    document.getElementById('idea-form').reset();
+                    loadIdeas();
+                    loadReviewedIdeas();
+                    statusMsg.textContent = 'Idea submitted successfully!';
+                    statusMsg.className = 'status-msg success';
+                }).catch(err => {
+                    console.error('Submission failed:', err);
+                    statusMsg.textContent = 'Error submitting idea: ' + (err.message || err);
+                    statusMsg.className = 'status-msg error';
+                }).finally(() => {
+                    submitBtn.disabled = false;
+                });
+            });
+        };
+    </script>
 </body>
+
 </html>
