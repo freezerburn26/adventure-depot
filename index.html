@@ -40,6 +40,11 @@
     <div id="ideas-list"></div>
   </div>
 
+  <div id="history-section" class="hidden">
+    <h2>Reviewed Ideas</h2>
+    <div id="history-list"></div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: 'AIzaSyCZE2TUvqdCXq3NIH6ELwJR01gBCyqpypI',
@@ -72,6 +77,8 @@
       } else {
         if (currentRole === 'operator' || currentRole === 'admin') {
           document.getElementById('idea-form').classList.remove('hidden');
+          document.getElementById('history-section').classList.remove('hidden');
+          loadReviewedIdeas();
         }
         if (currentRole === 'admin') {
           document.getElementById('admin-section').classList.remove('hidden');
@@ -102,6 +109,27 @@
       });
     }
 
+    function loadReviewedIdeas() {
+      const container = document.getElementById('history-list');
+      container.innerHTML = '';
+      db.collection('ideas').where('status', 'in', ['approved', 'rejected']).orderBy('submittedAt', 'desc').get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const div = document.createElement('div');
+          div.className = 'idea-box';
+          div.innerHTML = `
+            <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
+            <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
+            ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
+            <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
+            ${data.status === 'approved' ? `<p>Final Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}</p>` : ''}
+            ${data.status === 'rejected' ? `<p>Reason: ${data.rejectionReason || 'N/A'}</p>` : ''}
+          `;
+          container.appendChild(div);
+        });
+      });
+    }
+
     function approve(id) {
       const reason = document.getElementById(`reason-${id}`).value;
       const finalDate = document.getElementById(`finalDate-${id}`).value;
@@ -109,7 +137,10 @@
         status: 'approved',
         approvalReason: reason,
         finalDate: finalDate
-      }).then(() => loadIdeas());
+      }).then(() => {
+        loadIdeas();
+        loadReviewedIdeas();
+      });
     }
 
     function reject(id) {
@@ -117,7 +148,10 @@
       db.collection('ideas').doc(id).update({
         status: 'rejected',
         rejectionReason: reason
-      }).then(() => loadIdeas());
+      }).then(() => {
+        loadIdeas();
+        loadReviewedIdeas();
+      });
     }
 
     document.getElementById('idea-form').addEventListener('submit', e => {
