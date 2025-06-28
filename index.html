@@ -6,7 +6,7 @@
   <title>Adventure Ideas</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1rem; max-width: 600px; margin: auto; }
     .hidden { display: none; }
@@ -16,7 +16,9 @@
 <body>
   <h1>Adventure Ideas</h1>
 
-  <div id="login"></div>
+  <div id="login">
+    <button id="signin-btn">Sign in with Google</button>
+  </div>
   <p id="user-info"></p>
   <div id="unauthorized" class="hidden">Unauthorized user</div>
 
@@ -50,6 +52,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
     let currentUser = null;
     let currentRole = null;
@@ -136,19 +139,20 @@
     });
 
     window.onload = () => {
-      google.accounts.id.initialize({
-        client_id: '604874292978-tkaq841n6v5qcdinn1467hnqr3qlhgv9.apps.googleusercontent.com',
-        callback: res => {
-          const decoded = JSON.parse(atob(res.credential.split('.')[1]));
-          currentUser = decoded;
-          currentRole = setRole(decoded.email);
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          currentUser = user;
+          currentRole = setRole(user.email);
           renderUI();
         }
       });
-      google.accounts.id.renderButton(
-        document.getElementById('login'),
-        { theme: 'outline', size: 'large' }
-      );
+
+      document.getElementById('signin-btn').addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => {
+          console.error('Sign-in error:', error);
+        });
+      });
     };
   </script>
 </body>
