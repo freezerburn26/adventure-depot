@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adventure Ideas</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; max-width: 600px; margin: auto; }
+    .hidden { display: none; }
+    .idea-box { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Adventure Ideas</h1>
+
+  <div id="login"></div>
+  <p id="user-info"></p>
+  <div id="unauthorized" class="hidden">Unauthorized user</div>
+
+  <form id="idea-form" class="hidden">
+    <input type="text" id="name" placeholder="Adventure Name*" required><br>
+    <input type="date" id="date"><br>
+    <select id="window">
+      <option>Exact</option>
+      <option>Close</option>
+      <option>Months</option>
+      <option>Years</option>
+    </select><br>
+    <input type="url" id="url" placeholder="Optional URL"><br>
+    <button type="submit">Submit Idea</button>
+  </form>
+
+  <div id="admin-section" class="hidden">
+    <h2>Pending Ideas</h2>
+    <div id="ideas-list"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: 'AIzaSyCZE2TUvqdCXq3NIH6ELwJR01gBCyqpypI',
+      authDomain: 'adventure-depot.firebaseapp.com',
+      projectId: 'adventure-depot',
+    };
+
+    const ADMIN_EMAILS = ['freezerburn26@gmail.com'];
+    const OPERATOR_EMAILS = ['Ashleycalliotte@gmail.com'];
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let currentRole = null;
+
+    function setRole(email) {
+      if (ADMIN_EMAILS.includes(email)) return 'admin';
+      if (OPERATOR_EMAILS.includes(email)) return 'operator';
+      return 'unauthorized';
+    }
+
+    function renderUI() {
+      document.getElementById('user-info').innerText = `Logged in as: ${currentUser.email}`;
+      document.getElementById('login').style.display = 'none';
+
+      if (currentRole === 'unauthorized') {
+        document.getElementById('unauthorized').classList.remove('hidden');
+      } else {
+        if (currentRole === 'operator') {
+          document.getElementById('idea-form').classList.remove('hidden');
+        }
+        if (currentRole === 'admin') {
+          document.getElementById('admin-section').classList.remove('hidden');
+          loadIdeas();
+        }
+      }
+    }
+
+    function loadIdeas() {
+      const container = document.getElementById('ideas-list');
+      container.innerHTML = '';
+      db.collection('ideas').where('status', '==', 'pending').get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const div = document.createElement('div');
+          div.className = 'idea-box';
+          div.innerHTML = `
+            <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
+            <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
+            ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
+            <input type="text" placeholder="Reason" id="reason-${doc.id}">
+            <input type="date" id="finalDate-${doc.id}">
+            <button onclick="approve('${doc.id}')">Approve</button>
+            <button onclick="reject('${doc.id}')">Reject</button>
+          `;
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function approve(id) {
+      const reason = document.getElementById(`reason-${id}`).value;
+      const finalDate = document.getElementById(`finalDate-${id}`).value;
+      db.collection('ideas').doc(id).update({
+        status: 'approved',
+        approvalReason: reason,
+        finalDate: finalDate
+      }).then(() => loadIdeas());
+    }
+
+    function reject(id) {
+      const reason = document.getElementById(`reason-${id}`).value;
+      db.collection('ideas').doc(id).update({
+        status: 'rejected',
+        rejectionReason: reason
+      }).then(() => loadIdeas());
+    }
+
+    document.getElementById('idea-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      if (!name) return;
+      const date = document.getElementById('date').value;
+      const window = document.getElementById('window').value;
+      const url = document.getElementById('url').value;
+
+      db.collection('ideas').add({
+        name, date, window, url,
+        status: 'pending',
+        submittedBy: currentUser.email,
+        submittedAt: new Date().toISOString()
+      }).then(() => {
+        document.getElementById('idea-form').reset();
+      });
+    });
+
+    window.onload = () => {
+      google.accounts.id.initialize({
+        client_id: 'YOUR_GOOGLE_CLIENT_ID',
+        callback: res => {
+          const decoded = JSON.parse(atob(res.credential.split('.')[1]));
+          currentUser = decoded;
+          currentRole = setRole(decoded.email);
+          renderUI();
+        }
+      });
+      google.accounts.id.renderButton(
+        document.getElementById('login'),
+        { theme: 'outline', size: 'large' }
+      );
+    };
+  </script>
+</body>
+</html>
