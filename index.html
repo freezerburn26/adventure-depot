@@ -11,7 +11,7 @@
     body { font-family: sans-serif; padding: 1rem; max-width: 700px; margin: auto; background-color: #f8f9fa; }
     .hidden { display: none; }
     .idea-box { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin: 1rem 0; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    form input, form select, form button { display: block; width: 100%; margin: 0.5rem 0; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    form input, form select, form textarea, form button { display: block; width: 100%; margin: 0.5rem 0; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
     label { margin-top: 0.75rem; font-weight: bold; display: block; }
     button { background-color: #007bff; color: white; border: none; cursor: pointer; }
     button:hover { background-color: #0056b3; }
@@ -45,6 +45,9 @@
 
     <label for="url">Link (Optional)</label>
     <input type="url" id="url" placeholder="https://example.com">
+
+    <label for="notes">Notes</label>
+    <textarea id="notes" placeholder="Additional details..."></textarea>
 
     <button id="submit-btn" type="submit">Submit Idea</button>
     <p id="form-status" class="status-msg"></p>
@@ -93,6 +96,7 @@
         document.getElementById('idea-form').classList.remove('hidden');
         document.getElementById('history-section').classList.remove('hidden');
         loadReviewedIdeas();
+        setInterval(loadReviewedIdeas, 30000);
         if (currentRole === 'admin') {
           document.getElementById('admin-section').classList.remove('hidden');
           loadIdeas();
@@ -112,10 +116,11 @@
             <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
             <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
             ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
+            <p>Notes: ${data.notes || 'None'}</p>
             <input type="text" placeholder="Reason" id="reason-${doc.id}">
             <input type="date" id="finalDate-${doc.id}">
-            <button onclick="approve('${doc.id}')">Approve</button>
-            <button onclick="reject('${doc.id}')">Reject</button>
+            <button onclick="approve('${doc.id}', '${data.submittedBy}')">Approve</button>
+            <button onclick="reject('${doc.id}', '${data.submittedBy}')">Reject</button>
           `;
           container.appendChild(div);
         });
@@ -134,6 +139,7 @@
           <p><strong>${data.name}</strong> (from ${data.submittedBy})</p>
           <p>Suggested: ${data.date || 'N/A'} (${data.window})</p>
           ${data.url ? `<a href="${data.url}" target="_blank">Visit</a><br>` : ''}
+          <p>Notes: ${data.notes || 'None'}</p>
           <p>Status: <strong>${data.status.toUpperCase()}</strong></p>
           ${data.status === 'approved' ? `<p>✅ Approved<br>Date: ${data.finalDate || 'N/A'}<br>Reason: ${data.approvalReason || 'N/A'}</p>` : ''}
           ${data.status === 'rejected' ? `<p>❌ Rejected<br>Reason: ${data.rejectionReason || 'N/A'}</p>` : ''}
@@ -151,7 +157,7 @@
       });
     }
 
-    function approve(id) {
+    function approve(id, email) {
       const reason = document.getElementById(`reason-${id}`).value;
       const finalDate = document.getElementById(`finalDate-${id}`).value;
       db.collection('ideas').doc(id).update({
@@ -161,10 +167,11 @@
       }).then(() => {
         loadIdeas();
         loadReviewedIdeas();
+        console.log(`Email would be sent to ${email}: Approved with reason: ${reason}`);
       });
     }
 
-    function reject(id) {
+    function reject(id, email) {
       const reason = document.getElementById(`reason-${id}`).value;
       db.collection('ideas').doc(id).update({
         status: 'rejected',
@@ -172,6 +179,7 @@
       }).then(() => {
         loadIdeas();
         loadReviewedIdeas();
+        console.log(`Email would be sent to ${email}: Rejected with reason: ${reason}`);
       });
     }
 
@@ -190,12 +198,14 @@
         const date = document.getElementById('date').value;
         const windowVal = document.getElementById('window').value;
         const url = document.getElementById('url').value;
+        const notes = document.getElementById('notes').value;
 
         db.collection('ideas').add({
           name,
           date,
           window: windowVal,
           url,
+          notes,
           status: 'pending',
           submittedBy: currentUser.email,
           submittedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -205,6 +215,7 @@
           loadReviewedIdeas();
           statusMsg.textContent = 'Idea submitted successfully!';
           statusMsg.className = 'status-msg success';
+          console.log(`Email would be sent to ${ADMIN_EMAILS.join(', ')}: New idea submitted by ${currentUser.email}`);
         }).catch(err => {
           console.error('Submission failed:', err);
           statusMsg.textContent = 'Error submitting idea: ' + (err.message || err);
